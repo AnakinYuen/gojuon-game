@@ -57,10 +57,23 @@
             font-size: 1.5rem;
             margin-top: 20px;
         }
+        #timer {
+            position: absolute;
+            top: 0.25rem;
+            right: 0.25rem;
+            font-size: 1.5rem;
+        }
+        #counter {
+            position: absolute;
+            top: 0.25rem;
+            font-size: 1.5rem;
+        }
     </style>
 </head>
 <body>
 
+<div id="timer">00:00</div>
+<div id="counter">0</div>
 <div id="game-container">
     <div id="character">あ</div>
     <div id="input-container">
@@ -126,26 +139,70 @@
         { char: "ピャ", romaji: "pya" }, { char: "ピュ", romaji: "pyu" }, { char: "ピョ", romaji: "pyo" }
     ];
 
-    let currentCharacter;
+    let currentCharacterIndex;
+    let timeValue = 0;
+    let stopTiming = false;
+    const zero = document.timeline.currentTime;
 
     const characterElement = document.getElementById('character');
+    const counterElement = document.getElementById('counter');
     const inputElement = document.getElementById('input');
     const resultElement = document.getElementById('result');
     const nextButton = document.getElementById('next-button');
+    const timerElement = document.getElementById('timer');
+
+    function timing(timeStamp) {
+        const second = Math.floor((timeStamp - zero) / 1000);
+        if (timeValue !== second) {
+            timeValue = second;
+            const minutes = Math.floor(timeValue / 60).toString().padStart(2, '0');
+            const seconds = (timeValue % 60).toString().padStart(2, '0');
+            timerElement.textContent = `${minutes}:${seconds}`;
+        }
+        if (!stopTiming) {
+            requestAnimationFrame(timing);
+        }
+    }
+
+    function getRandomInt(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
 
     function showNextCharacter() {
-        currentCharacter = characters[Math.floor(Math.random() * characters.length)];
-        characterElement.textContent = currentCharacter.char;
-        inputElement.value = '';
-        resultElement.textContent = '';
-        inputElement.style.display = 'inline-block';
-        nextButton.style.display = 'none';
+        updateCounter();
+        if (characters.length) {
+            currentCharacterIndex = getRandomInt(0, characters.length - 1)
+            const currentCharacter = characters[currentCharacterIndex];
+            characterElement.textContent = currentCharacter.char;
+            inputElement.value = '';
+            resultElement.textContent = '';
+            inputElement.style.display = 'inline-block';
+            nextButton.style.display = 'none';
+        } else {
+            endGame();
+        }
+    }
+
+    function updateCounter() {
+        counterElement.textContent = characters.length;
+    }
+
+    function endGame() {
+        stopTiming = true;
+        resultElement.textContent = `恭喜你用了${timerElement.textContent}完成遊戲`;
+        characterElement.textContent = '🎊';
+        inputElement.style.display = 'none';
     }
 
     function checkAnswer() {
+        const currentCharacter = characters[currentCharacterIndex];
         if (inputElement.value.trim().toLowerCase() === currentCharacter.romaji) {
+            characters.splice(currentCharacterIndex, 1);
             showNextCharacter();
         } else {
+            characters.push(currentCharacter);
             resultElement.textContent = `正確答案是: ${currentCharacter.romaji}`;
             inputElement.style.display = 'none';
             nextButton.style.display = 'block';
@@ -160,6 +217,8 @@
 
     nextButton.addEventListener('click', showNextCharacter);
 
+    updateCounter();
+    requestAnimationFrame(timing);
     showNextCharacter();
 </script>
 
