@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Japanese Listening Game</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        button, input {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+        }
+        .slider-container label {
+            margin-right: 10px;
+        }
+        .correct-answer-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+        .button-container {
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <button id="playButton">Play</button>
+    <input type="text" id="answerInput" placeholder="Type your answer here">
+    <div class="button-container">
+        <button id="checkButton">Check Answer</button>
+        <button id="replayButton" style="display: none;">Replay Answer</button>
+    </div>
+    <p id="result"></p>
+    <div class="slider-container">
+        <label for="rateSlider">Speech Rate:</label>
+        <input type="range" id="rateSlider" min="0.1" max="2" value="1" step="0.1">
+    </div>
+    <div class="correct-answer-container" id="correctAnswerContainer">
+        <p id="correctAnswerText"></p>
+    </div>
+
+    <script>
+        const categories = {
+            numbers: () => {
+                const areaCode = Math.floor(Math.random() * 900 + 100).toString();
+                const middlePart = Math.floor(Math.random() * 9000 + 1000).toString();
+                const lastPart = Math.floor(Math.random() * 9000 + 1000).toString();
+                return `${areaCode}-${middlePart}-${lastPart}`;
+            },
+            dates: () => {
+                const year = Math.floor(Math.random() * 21) + 2000;
+                const month = Math.floor(Math.random() * 12) + 1;
+                const day = Math.floor(Math.random() * 28) + 1;
+                return `${year}年${month}月${day}日`;
+            },
+            weekNames: () => {
+                const weekNames = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
+                return weekNames[Math.floor(Math.random() * weekNames.length)];
+            }
+        };
+
+        let currentText = '';
+        let currentCategory = '';
+        let correctAnswer = '';
+        let correctText = '';
+
+        function generateNewText() {
+            const categoryKeys = Object.keys(categories);
+            currentCategory = categoryKeys[Math.floor(Math.random() * categoryKeys.length)];
+            currentText = categories[currentCategory]();
+        }
+
+        document.getElementById('playButton').addEventListener('click', () => {
+            if (!currentText) {
+                generateNewText();
+                document.getElementById('answerInput').value = ''; // Clear the text field for the next round
+            }
+
+            const utterance = new SpeechSynthesisUtterance(currentText);
+            utterance.lang = 'ja-JP';
+            const rate = document.getElementById('rateSlider').value;
+            utterance.rate = rate;
+            speechSynthesis.speak(utterance);
+
+            document.getElementById('result').textContent = ''; // Clear the answer response message
+            document.getElementById('replayButton').style.display = 'none'; // Hide the replay button
+
+            const answerInput = document.getElementById('answerInput');
+            answerInput.focus();
+            answerInput.setSelectionRange(answerInput.value.length, answerInput.value.length); // Put the caret at the end of the value
+        });
+
+        document.getElementById('checkButton').addEventListener('click', () => {
+            const userAnswer = document.getElementById('answerInput').value;
+            const resultElement = document.getElementById('result');
+            correctAnswer = currentText;
+            correctText = currentText;
+
+            if (currentCategory === 'dates') {
+                const [year, month, day] = currentText.match(/\d+/g);
+                correctAnswer = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            } else if (currentCategory === 'weekNames') {
+                const weekNames = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
+                const weekNumbers = [7, 1, 2, 3, 4, 5, 6];
+                correctAnswer = weekNumbers[weekNames.indexOf(currentText)].toString();
+            }
+
+            if (userAnswer === correctAnswer) {
+                resultElement.textContent = 'Correct!';
+                resultElement.style.color = 'green';
+                document.getElementById('replayButton').style.display = 'none'; // Hide the replay button
+            } else {
+                resultElement.textContent = `Incorrect! The correct answer was: ${correctAnswer}`;
+                resultElement.style.color = 'red';
+                document.getElementById('replayButton').style.display = 'inline'; // Show the replay button
+            }
+            // Do not clear the text field here
+            currentText = ''; // Reset currentText after checking the answer
+        });
+
+        document.getElementById('replayButton').addEventListener('click', () => {
+            const utterance = new SpeechSynthesisUtterance(correctText);
+            utterance.lang = 'ja-JP';
+            const rate = document.getElementById('rateSlider').value;
+            utterance.rate = rate;
+            speechSynthesis.speak(utterance);
+        });
+    </script>
+</body>
+</html>
